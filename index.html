@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中学英語マスター Web版</title>
+    
+    <script src="chapter01.js"></script>
+    <script src="chapter13.js"></script>
+    <script src="chapter14.js"></script>
+    <script src="extra_chapter.js"></script>
+    <script src="chapter15.js"></script>
+    <script src="chapter73.js"></script>
+    <script src="chapterSentencePatterns.js"></script>
+    
+    <style>
+        /* デザイン設定 (CSS) 修正版：iPad対応 */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+            background-color: #f2f2f7;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh; /* 高さを固定せず、最低の高さを指定 */
+        }
+
+        #app-container {
+            width: 100%;
+            max-width: 600px;
+            background-color: white;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh; /* コンテンツに合わせて伸びるように */
+            position: relative;
+            padding-bottom: 40px; /* 下に余白を作ってボタン隠れを防止 */
+            box-sizing: border-box;
+        }
+
+        /* 画面共通 */
+        .screen {
+            display: none;
+            flex-direction: column;
+            /* height: 100%; を削除してスクロール可能に */
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .active {
+            display: flex;
+        }
+
+        /* タイトル画面 */
+        .title-header { text-align: center; margin-top: 50px; margin-bottom: 30px; }
+        .title-text { font-size: 32px; font-weight: bold; color: #007AFF; }
+        .menu-list { flex: 1; padding-bottom: 20px; }
+        .menu-btn {
+            background-color: white; border: none; border-radius: 15px;
+            padding: 20px; margin-bottom: 15px; width: 100%; text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1); cursor: pointer; transition: transform 0.1s;
+            border: 1px solid #eee; /* 枠線を少し追加 */
+        }
+        .menu-btn:active { transform: scale(0.98); }
+        .menu-title { font-size: 18px; font-weight: bold; display: block; }
+        .menu-sub { font-size: 14px; display: block; margin-top: 5px; opacity: 0.9; }
+
+        /* クイズ画面 */
+        .quiz-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .close-btn { background: #eee; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; color: #555; }
+        .score-board { background: #eee; padding: 8px 12px; border-radius: 8px; font-weight: bold; }
+        .progress-bar-bg { height: 6px; background: #e0e0e0; border-radius: 3px; margin-bottom: 20px; }
+        .progress-bar-fill { height: 100%; background: #007AFF; border-radius: 3px; width: 0%; transition: width 0.3s; }
+
+        .question-box {
+            background: white; padding: 20px; border-radius: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: center;
+            margin-bottom: 20px; border: 1px solid #eee;
+        }
+        .q-text { font-size: 20px; font-weight: bold; margin-bottom: 10px; }
+        .q-hint { font-size: 14px; color: #888; }
+
+        /* 文作成エリア */
+        .sentence-area {
+            min-height: 80px; background: #f9f9f9; border: 2px dashed #ccc;
+            border-radius: 15px; display: flex; flex-wrap: wrap;
+            align-items: center; justify-content: center; padding: 10px;
+            margin-bottom: 20px; font-size: 20px; font-weight: bold; color: #333;
+            gap: 8px; cursor: pointer;
+        }
+        .sentence-placeholder { color: #ccc; }
+
+        /* 単語バンク */
+        .word-bank {
+            display: flex; flex-wrap: wrap; justify-content: center;
+            gap: 10px; margin-bottom: 30px; /* 下に余白を追加 */
+            align-content: start;
+        }
+        .word-chip {
+            background: white; color: #007AFF; border: 1px solid #ddd;
+            padding: 10px 15px; border-radius: 20px; font-weight: bold;
+            font-size: 18px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); cursor: pointer; user-select: none;
+        }
+        .word-chip:active { background-color: #f0f0f0; }
+
+        .check-btn {
+            background-color: #007AFF; color: white; font-size: 18px; font-weight: bold;
+            border: none; padding: 15px; border-radius: 15px; width: 100%; cursor: pointer;
+            margin-top: 20px; /* 自動配置をやめて余白指定に */
+        }
+        .check-btn:disabled { background-color: #ccc; }
+
+        /* 結果オーバーレイ（画面固定） */
+        #feedback-overlay {
+            position: fixed; /* absoluteからfixedに変更 */
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.2); display: none;
+            justify-content: center; align-items: center; z-index: 100;
+        }
+        .feedback-box {
+            background: white; padding: 30px; border-radius: 20px; text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2); width: 80%; max-width: 400px;
+        }
+        .feedback-icon { font-size: 60px; display: block; margin-bottom: 10px; }
+        .feedback-text { font-size: 24px; font-weight: bold; display: block; margin-bottom: 10px; }
+        .correct-answer-text { font-size: 16px; color: #555; background: #f0f0f0; padding: 10px; border-radius: 8px; }
+        .c-green { color: #34C759; }
+        .c-red { color: #FF3B30; }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <div id="menu-screen" class="screen active">
+        <div class="title-header">
+            <div style="font-size: 60px;">📖</div>
+            <div class="title-text">中学英語マスター</div>
+        </div>
+        <div class="menu-list">
+
+            <button class="menu-btn" style="background: #FF9500; color: white;" onclick="tryStart(chapter01)">
+                <span class="menu-title">chapterSentencePatterns</span>
+                <span class="menu-sub">文法 (並べ替え)</span>
+
+             <button class="menu-btn" style="background: #FF9500; color: white;" onclick="tryStart(chapter00)">
+                <span class="menu-title">Chapter00</span>
+                <span class="menu-sub">過去分詞 (並べ替え)</span>
+            </button>
+            
+            <button class="menu-btn" style="background: #007AFF; color: white;" onclick="tryStart(chapter13)">
+                <span class="menu-title">Chapter 13</span>
+                <span class="menu-sub">代名詞 (He/She)</span>
+            </button>
+
+            <button class="menu-btn" style="background: #34C759; color: white;" onclick="tryStart(chapter14)">
+                <span class="menu-title">Chapter 14</span>
+                <span class="menu-sub">所有格 (My/Mine)</span>
+            </button>
+
+            <button class="menu-btn" style="background: #FF9500; color: white;" onclick="tryStart(extraChapter)">
+                <span class="menu-title">Extra Chapter</span>
+                <span class="menu-sub">a / the (並べ替え)</span>
+            </button>
+
+            <button class="menu-btn" style="background: #AF52DE; color: white;" onclick="tryStart(chapter15)">
+                <span class="menu-title">Chapter 15</span>
+                <span class="menu-sub">過去形 (並べ替え)</span>
+            </button>
+            
+            <button class="menu-btn" style="background: #FF2D55; color: white;" onclick="tryStart(chapter73)">
+                <span class="menu-title">Chapter 73</span>
+                <span class="menu-sub">接続詞 (if / because)</span>
+            </button>
+            
+        </div>
+    </div>
+
+    <div id="quiz-screen" class="screen">
+        <div class="quiz-header">
+            <button class="close-btn" onclick="quitGame()">✕ やめる</button>
+            <div class="score-board">
+                <span style="color:#34C759">●</span> <span id="score-correct">0</span>
+                &nbsp;&nbsp;
+                <span style="color:#FF3B30">✖</span> <span id="score-wrong">0</span>
+            </div>
+        </div>
+        <div class="progress-bar-bg"><div id="progress-fill" class="progress-bar-fill"></div></div>
+        <div class="question-box">
+            <div id="q-text" class="q-text"></div>
+            <div id="q-hint" class="q-hint"></div>
+        </div>
+        <div id="sentence-area" class="sentence-area" onclick="popLastWord()"></div>
+        <div id="word-bank" class="word-bank"></div>
+        <button id="check-btn" class="check-btn" onclick="checkAnswer()" disabled>決定</button>
+    </div>
+
+    <div id="result-screen" class="screen" style="justify-content: center; align-items: center; text-align: center;">
+        <h1 style="font-size: 40px;">お疲れ様でした！</h1>
+        <div style="display: flex; gap: 40px; margin: 30px 0;">
+            <div><div style="color:#34C759">正解</div><div id="final-correct" style="font-size: 50px; font-weight: bold;">0</div></div>
+            <div><div style="color:#FF3B30">不正解</div><div id="final-wrong" style="font-size: 50px; font-weight: bold;">0</div></div>
+        </div>
+        <button class="menu-btn" style="background: #007AFF; color: white;" onclick="toMenu()">タイトルに戻る</button>
+    </div>
+
+    <div id="feedback-overlay">
+        <div class="feedback-box">
+            <span id="fb-icon" class="feedback-icon"></span>
+            <span id="fb-text" class="feedback-text"></span>
+            <div id="fb-answer" class="correct-answer-text" style="display:none;"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 状態管理
+    let currentQuestions = [];
+    let currentIndex = 0;
+    let correctCount = 0;
+    let wrongCount = 0;
+    let selectedWords = [];
+    let wordBank = [];
+
+    // 要素取得
+    const menuScreen = document.getElementById("menu-screen");
+    const quizScreen = document.getElementById("quiz-screen");
+    const resultScreen = document.getElementById("result-screen");
+    const qText = document.getElementById("q-text");
+    const qHint = document.getElementById("q-hint");
+    const sentenceArea = document.getElementById("sentence-area");
+    const wordBankArea = document.getElementById("word-bank");
+    const checkBtn = document.getElementById("check-btn");
+    const progressFill = document.getElementById("progress-fill");
+    const scoreCorrect = document.getElementById("score-correct");
+    const scoreWrong = document.getElementById("score-wrong");
+    const feedbackOverlay = document.getElementById("feedback-overlay");
+    const fbIcon = document.getElementById("fb-icon");
+    const fbText = document.getElementById("fb-text");
+    const fbAnswer = document.getElementById("fb-answer");
+
+    // データ読み込み確認付きスタート
+    function tryStart(dataVariable) {
+        if (typeof dataVariable === 'undefined') {
+            alert("エラー: このチャプターのデータファイルが見つかりません。\n同じフォルダに 'chapterXX.js' があるか確認してください。");
+        } else {
+            startChapter(dataVariable);
+        }
+    }
+
+    function shuffle(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+    }
+
+    function startChapter(data) {
+        currentQuestions = [...data];
+        currentIndex = 0;
+        correctCount = 0;
+        wrongCount = 0;
+        scoreCorrect.innerText = 0;
+        scoreWrong.innerText = 0;
+        menuScreen.classList.remove("active");
+        resultScreen.classList.remove("active");
+        quizScreen.classList.add("active");
+        loadQuestion();
+    }
+
+    function loadQuestion() {
+        if (currentIndex >= currentQuestions.length) {
+            showResult(); return;
+        }
+        const q = currentQuestions[currentIndex];
+        qText.innerText = `Q${q.id}. ` + q.text;
+        qHint.innerText = "ヒント: " + q.hint;
+        const pct = (currentIndex / currentQuestions.length) * 100;
+        progressFill.style.width = pct + "%";
+        selectedWords = [];
+        wordBank = shuffle([...q.choices]);
+        renderWords();
+    }
+
+    function renderWords() {
+        sentenceArea.innerHTML = "";
+        if (selectedWords.length === 0) {
+            sentenceArea.innerHTML = '<span class="sentence-placeholder">単語を選んで文を作ろう</span>';
+            checkBtn.disabled = true;
+        } else {
+            selectedWords.forEach((word) => {
+                const span = document.createElement("span");
+                span.innerText = word;
+                sentenceArea.appendChild(span);
+            });
+            checkBtn.disabled = false;
+        }
+        wordBankArea.innerHTML = "";
+        wordBank.forEach((word) => {
+            const chip = document.createElement("div");
+            chip.className = "word-chip";
+            chip.innerText = word;
+            chip.onclick = () => selectWord(word);
+            wordBankArea.appendChild(chip);
+        });
+    }
+
+    function selectWord(word) {
+        selectedWords.push(word);
+        const idx = wordBank.indexOf(word);
+        if (idx > -1) wordBank.splice(idx, 1);
+        renderWords();
+    }
+
+    function popLastWord() {
+        if (selectedWords.length > 0) {
+            const word = selectedWords.pop();
+            wordBank.push(word);
+            renderWords();
+        }
+    }
+
+    function checkAnswer() {
+        const q = currentQuestions[currentIndex];
+        const userSentence = selectedWords.join(" "); // スペースで結合
+        // 簡単な判定（大文字小文字やスペースを厳密にするなら調整可）
+        const isCorrect = (userSentence.trim() === q.answer.trim());
+        
+        fbAnswer.style.display = "none";
+        
+        if (isCorrect) {
+            correctCount++;
+            scoreCorrect.innerText = correctCount;
+            fbIcon.innerText = "⭕️";
+            fbIcon.className = "feedback-icon c-green";
+            fbText.innerText = "正解！";
+            fbText.className = "feedback-text c-green";
+        } else {
+            wrongCount++;
+            scoreWrong.innerText = wrongCount;
+            fbIcon.innerText = "❌";
+            fbIcon.className = "feedback-icon c-red";
+            fbText.innerText = "不正解...";
+            fbText.className = "feedback-text c-red";
+            
+            // 正解を表示
+            fbAnswer.innerText = "正解: " + q.answer;
+            fbAnswer.style.display = "block";
+        }
+        
+        feedbackOverlay.style.display = "flex";
+        
+        setTimeout(() => {
+            feedbackOverlay.style.display = "none";
+            currentIndex++;
+            loadQuestion();
+        }, 2500); // 2.5秒後に次へ
+    }
+
+    function showResult() {
+        quizScreen.classList.remove("active");
+        resultScreen.classList.add("active");
+        document.getElementById("final-correct").innerText = correctCount;
+        document.getElementById("final-wrong").innerText = wrongCount;
+    }
+
+    function toMenu() {
+        resultScreen.classList.remove("active");
+        menuScreen.classList.add("active");
+    }
+
+    function quitGame() {
+        if(confirm("クイズをやめてタイトルに戻りますか？")) {
+            quizScreen.classList.remove("active");
+            menuScreen.classList.add("active");
+        }
+    }
+</script>
+
+</body>
+</html>
